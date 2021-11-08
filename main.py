@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
+# cython: language_level=3
 import sys
 import os
 import requests
@@ -16,7 +17,7 @@ import time
 from PIL import Image,ImageDraw,ImageFont
 import traceback
 
-
+	
 TICKER_API_URL = 'https://api.coinmarketcap.com/v1/ticker/'
 
 def get_latest_crypto_info(crypto):
@@ -35,11 +36,10 @@ try:
 
     logging.info("init and Clear")
     epd.init()
-    epd.Clear()
 
     def draw():
         font_large = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 35)
-        font18 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 18)
+        font_small = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 22)
 
         # Drawing on the Horizontal image
         logging.info("1.Drawing on the Horizontal image...")
@@ -53,31 +53,48 @@ try:
         current_time = now.strftime("%H:%M")
 
         draw.text((350, 10), current_time, font = font_large, fill = 0)
+        draw.text((580, 15), now.strftime("%d %B, %Y"), font = font_small, fill = 0)
 
-        margin = 20
+
+        margin = 26
         i=1
+
+        row_margin = margin+40
         while i<2:
-            draw.text((10, i*45+margin), 'Crypto', font = font_large, fill = 0)
+            draw.text((20, i*22+margin+10), 'Crypto', font = font_large, fill = 0)
             i=i+1
-        crypto_currencies = ['bitcoin', 'ethereum', 'zcash', 'eos']
+        crypto_currencies = ['bitcoin', 'ethereum', 'zcash', 'eos', 'cardano', 'stellar']
         for c in crypto_currencies:
-            draw.text((10, i*45+margin), c+": ", font = font_large, fill = 0)
-            draw.text((210, i*45+margin), str(get_latest_crypto_info(c)[0]['current_price'])+" EUR", font = font_large, fill = 0)
+            draw.text((20, i*25+row_margin), c+": ", font = font_small, fill = 0)
+            draw.text((120, i*25+row_margin), str(get_latest_crypto_info(c)[0]['current_price'])+" EUR", font = font_small, fill = 0, align = 'right')
             i=i+1
+                
+        response = requests.get("https://node-hnapi.herokuapp.com/news")
+        response_json = response.json()
+
+        n=1
+        draw.text((400, n*25+margin+10), 'News', font = font_large, fill = 0)
+        n=2
+        for article in response_json[:10]:
+            title = (article['title'][:43] + '..') if len(article['title']) > 43 else article['title']
+            draw.text((400, n*25+row_margin), title, font = font_small, fill = 0)
+            n=n+1
+
+
 
         epd.display(epd.getbuffer(Himage))
-        time.sleep(20)
 
-        logging.info("Clear...")
-        epd.init()
-        epd.Clear()
 
-    while 1 == 1:
-        draw()
+
+
+        #logging.info("Clear...")
+        #epd.init()
+        #epd.Clear()
+
+    draw()
 
     logging.info("Goto Sleep...")
     epd.sleep()
-    time.sleep(3)
 
     epd.Dev_exit()
 
